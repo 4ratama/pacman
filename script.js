@@ -11,6 +11,52 @@ const highScoreElement = document.getElementById('highScore');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// --- ゲーム定数 ---
+const TILE_SIZE = 20; // 1タイルのサイズ (px)
+const MAP_WIDTH = 28; // マップの横タイル数
+const MAP_HEIGHT = 31; // マップの縦タイル数
+
+// Canvasのサイズを設定
+canvas.width = MAP_WIDTH * TILE_SIZE;
+canvas.height = MAP_HEIGHT * TILE_SIZE;
+
+// マップの定義（0:通路, 1:壁, 2:ドット, 3:パワーエサ, 4:ゴーストの巣の入り口）
+const originalMap = [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,3,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,3,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
+    [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
+    [1,1,1,1,1,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,0,1,1,1,4,4,1,1,1,0,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
+    [0,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0],
+    [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1],
+    [1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+    [1,3,2,2,1,1,2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,1,1,2,2,3,1],
+
+    [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
+    [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
+    [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
+    [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
+    [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
+    [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+let gameMap; // ゲーム中に変更されるマップ状態
+
 // --- ゲームの状態管理 ---
 let score = 0;
 let highScore = 0;
@@ -34,7 +80,7 @@ function saveHighScore() {
 function showHomeScreen() {
     homeScreen.style.display = 'block';
     gameScreen.style.display = 'none';
-    loadHighScore(); // ホーム画面表示時にハイスコアを更新
+    loadHighScore();
 }
 
 function showGameScreen() {
@@ -42,48 +88,65 @@ function showGameScreen() {
     gameScreen.style.display = 'block';
 }
 
+// --- マップ描画 ---
+function drawMap() {
+    for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+            const tile = gameMap[y][x];
+            
+            // 通路や食べたドットの場所を一度クリア
+            ctx.fillStyle = '#000';
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+            if (tile === 1) { // 壁
+                ctx.fillStyle = '#0000FF'; // 青
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            } else if (tile === 2) { // ドット
+                ctx.fillStyle = '#FFC107'; // 黄色
+                ctx.beginPath();
+                ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 6, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (tile === 3) { // パワーエサ
+                ctx.fillStyle = '#FFC107'; // 黄色
+                ctx.beginPath();
+                ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 3, TILE_SIZE / 3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (tile === 4) { // ゴーストの巣の入り口
+                ctx.fillStyle = '#FFB8FF'; // ピンク色
+                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE + TILE_SIZE * 0.4, TILE_SIZE, TILE_SIZE * 0.2);
+            }
+        }
+    }
+}
+
+
 // --- ゲームのメイン処理 ---
 function startGame() {
-    // スコアリセット
     score = 0;
     scoreElement.textContent = score;
     
-    // 画面切り替え
+    // ゲーム開始時にマップをリセット
+    gameMap = JSON.parse(JSON.stringify(originalMap));
+    
     showGameScreen();
+    drawMap(); // ゲーム開始時にマップを描画
 
-    // TODO: ここにゲームの初期化処理（マップ描画、キャラ配置など）を追加していく
     console.log("ゲーム開始！");
-    drawPlaceholder(); // 仮の描画処理
-}
-
-// 仮の描画関数
-function drawPlaceholder() {
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'yellow';
-    ctx.font = '30px "Press Start 2P"';
-    ctx.textAlign = 'center';
-    ctx.fillText('ここにゲームが描画されます', canvas.width / 2, canvas.height / 2);
 }
 
 
 // --- イベントリスナー ---
 startGameBtn.addEventListener('click', startGame);
-
 homeBtn.addEventListener('click', showHomeScreen);
-
 pauseBtn.addEventListener('click', () => {
     isPaused = true;
     console.log("ゲーム一時停止");
-    // TODO: ゲームの一時停止処理
 });
-
 resumeBtn.addEventListener('click', () => {
     isPaused = false;
     console.log("ゲーム再開");
-    // TODO: ゲームの再開処理
 });
 
 
 // --- 初期化 ---
-showHomeScreen(); // 最初にホーム画面を表示
+showHomeScreen();
