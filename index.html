@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>パックマン</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="gameContainer">
+<div id="homeScreen">
+            <h1 class="game-title">パックマン</h1>
+            <div class="character-icons">
+                <img src="images/pacman_player.png" alt="Pac-Man">
+                <img src="images/pacman_ghost_red.png" alt="Red Ghost">
+                <img src="images/pacman_ghost_lightblue.png" alt="Blue Ghost"> </div>
+            <button id="startGameBtn">GAME START</button>
+        </div>
+
+        <div id="gameScreen">
+            <div id="gameHeader">
+                <p>SCORE: <span id="score">0</span></p>
+                <p>HIGH SCORE: <span id="highScore">0</span></p>
+            </div>
+            <canvas id="gameCanvas" width="560" height="620"></canvas>
+            <div id="gameControls">
+                <button id="pauseBtn">PAUSE</button>
+                <button id="resumeBtn">RESUME</button>
+                <button id="homeBtn">ホームへ戻る</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
