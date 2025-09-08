@@ -15,6 +15,15 @@ const ctx = canvas.getContext('2d');
 const TILE_SIZE = 20; // 1タイルのサイズ (px)
 const MAP_WIDTH = 28; // マップの横タイル数
 const MAP_HEIGHT = 31; // マップの縦タイル数
+// --- キャラクターの定義 ---
+const pacman = {
+    x: TILE_SIZE * 13.5, // X座標（マップの中央付近）
+    y: TILE_SIZE * 23,  // Y座標
+    radius: TILE_SIZE / 2 * 0.8, // 半径
+    speed: 2, // 移動速度
+    direction: 'stop', // 現在の進行方向
+    nextDirection: 'stop' // 次に進みたい方向
+};
 
 // Canvasのサイズを設定
 canvas.width = MAP_WIDTH * TILE_SIZE;
@@ -124,12 +133,18 @@ function drawMap() {
 function startGame() {
     score = 0;
     scoreElement.textContent = score;
+    isPaused = false; // ポーズ状態をリセット
+
+    // パックマンの位置と方向をリセット
+    pacman.x = TILE_SIZE * 13.5;
+    pacman.y = TILE_SIZE * 23;
+    pacman.direction = 'stop';
+    pacman.nextDirection = 'stop';
     
-    // ゲーム開始時にマップをリセット
     gameMap = JSON.parse(JSON.stringify(originalMap));
     
     showGameScreen();
-    drawMap(); // ゲーム開始時にマップを描画
+    // drawMap(); // gameLoopの中で描画されるので不要
 
     console.log("ゲーム開始！");
 }
@@ -148,5 +163,116 @@ resumeBtn.addEventListener('click', () => {
 });
 
 
-// --- 初期化 ---
-showHomeScreen();
+// --- イベントリスナーの修正 ---
+// startGameBtnのイベントリスナーを一度削除し、再度設定します。
+// （古いリスナーが残っている可能性をなくすため）
+const oldBtn = document.getElementById('startGameBtn');
+const newBtn = oldBtn.cloneNode(true);
+oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+
+newBtn.addEventListener('click', () => {
+    startGame();
+    gameLoop(); // ★ゲーム開始ボタンが押された時にループを開始する
+});
+
+
+// --- キーボード入力の処理 ---
+window.addEventListener('keydown', (e) => {
+    switch (e.key) {
+        case 'ArrowUp':
+            pacman.nextDirection = 'up';
+            break;
+        case 'ArrowDown':
+            pacman.nextDirection = 'down';
+            break;
+        case 'ArrowLeft':
+            pacman.nextDirection = 'left';
+            break;
+        case 'ArrowRight':
+            pacman.nextDirection = 'right';
+            break;
+    }
+});
+
+
+// --- パックマンの描画 ---
+function drawPacman() {
+    ctx.fillStyle = 'yellow';
+    ctx.beginPath();
+    ctx.arc(pacman.x, pacman.y, pacman.radius, 0.2 * Math.PI, 1.8 * Math.PI);
+    ctx.lineTo(pacman.x, pacman.y);
+    ctx.closePath();
+    ctx.fill();
+}
+
+
+// --- パックマンの移動と壁判定 ---
+function movePacman() {
+    // 壁との衝突判定
+    function checkCollision(x, y) {
+        const gridX = Math.floor(x / TILE_SIZE);
+        const gridY = Math.floor(y / TILE_SIZE);
+        // マップの範囲外に出ないようにチェック
+        if (gridY < 0 || gridY >= MAP_HEIGHT || gridX < 0 || gridX >= MAP_WIDTH) {
+            return true; // 範囲外は壁とみなす
+        }
+        return gameMap[gridY][gridX] === 1; // 1が壁
+    }
+
+    // 次の方向へ進めるかチェック
+    if (pacman.nextDirection === 'up' && !checkCollision(pacman.x, pacman.y - pacman.speed)) {
+        pacman.direction = pacman.nextDirection;
+    }
+    if (pacman.nextDirection === 'down' && !checkCollision(pacman.x, pacman.y + pacman.speed)) {
+        pacman.direction = pacman.nextDirection;
+    }
+    if (pacman.nextDirection === 'left' && !checkCollision(pacman.x - pacman.speed, pacman.y)) {
+        pacman.direction = pacman.nextDirection;
+    }
+    if (pacman.nextDirection === 'right' && !checkCollision(pacman.x + pacman.speed, pacman.y)) {
+        pacman.direction = pacman.nextDirection;
+    }
+    
+    // 現在の方向へ移動
+    switch (pacman.direction) {
+        case 'up':
+            if (!checkCollision(pacman.x, pacman.y - pacman.speed)) {
+                pacman.y -= pacman.speed;
+            }
+            break;
+        case 'down':
+            if (!checkCollision(pacman.x, pacman.y + pacman.speed)) {
+                pacman.y += pacman.speed;
+            }
+            break;
+        case 'left':
+            if (!checkCollision(pacman.x - pacman.speed, pacman.y)) {
+                pacman.x -= pacman.speed;
+            }
+            break;
+        case 'right':
+            if (!checkCollision(pacman.x + pacman.speed, pacman.y)) {
+                pacman.x += pacman.speed;
+            }
+            break;
+    }
+
+    // 画面の左右をループする（ワープトンネル）
+    if (pacman.x < 0) {
+        pacman.x = canvas.width;
+    } else if (pacman.x > canvas.width) {
+        pacman.x = 0;
+    }
+}
+
+
+// --- ゲームループ ---
+function gameLoop() {
+    if (!isPaused) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // 画面をクリア
+        drawMap();    // マップを再描画
+        movePacman(); // パックマンを移動
+        drawPacman(); // パックマンを描画
+    }
+    requestAnimationFrame(gameLoop); // 次のフレームを要求
+}
